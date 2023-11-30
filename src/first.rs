@@ -44,20 +44,58 @@ impl<T> Drop for List<T> {
         }
     }
 }
-#[test]
-fn peek() {
-    let mut list = List::new();
-    assert_eq!(list.peek(), None);
-    assert_eq!(list.peek_mut(), None);
-    list.push(1); list.push(2); list.push(3);
 
-    assert_eq!(list.peek(), Some(&3));
-    assert_eq!(list.peek_mut(), Some(&mut 3));
+impl<T> Iterator for List<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.pop()
+    }
 }
+
+pub struct Iter<'a, T> {
+    next : Option<&'a Node<T>>,
+}
+
+impl<T> List<T> {
+   pub fn iter<'a>(&'a self)-> Iter<'a,T> {
+
+       Iter {next: self.head.as_deref()}
+       /*
+       Iter {next: self.head.as_ref().map(|node| node.as_ref())
+       }
+
+        */
+   }
+}
+impl<'a, T>  Iterator for Iter<'a, T>{
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next.map(|node| {
+            self.next = node.next.as_deref();
+            /*
+            self.next = node.next.as_ref().map(|node|  node.as_ref());
+
+             */
+            &node.elem
+        })
+    }
+}
+
 
 mod test {
     use crate::first::{Link, List};
 
+    #[test]
+    fn peek() {
+        let mut list = List::new();
+        assert_eq!(list.peek(), None);
+        assert_eq!(list.peek_mut(), None);
+        list.push(1); list.push(2); list.push(3);
+
+        assert_eq!(list.peek(), Some(&3));
+        assert_eq!(list.peek_mut(), Some(&mut 3));
+    }
     #[test]
     fn basics() {
         let mut list = List::new();
@@ -86,5 +124,30 @@ mod test {
         // Check exhaustion
         assert_eq!(list.pop(),Some(1));
         assert_eq!(list.pop(),None);
+
+
+
+    }
+    #[test]
+    fn into_iter() {
+
+        let mut list = List::new();
+        list.push(1);list.push(2);list.push(3);
+
+        let mut iter = list.into_iter();
+        assert_eq!(iter.next(),Some(3));
+        assert_eq!(iter.next(),Some(2));
+        assert_eq!(iter.next(),Some(1));
+    }
+    #[test]
+    fn iter() {
+
+        let mut list = List::new();
+        list.push(1);list.push(2);list.push(3);
+
+        let mut iter = list.iter();
+        assert_eq!(iter.next(),Some(&3));
+        assert_eq!(iter.next(),Some(&2));
+        assert_eq!(iter.next(),Some(&1));
     }
 }
